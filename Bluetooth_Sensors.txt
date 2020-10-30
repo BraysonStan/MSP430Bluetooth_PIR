@@ -1,0 +1,80 @@
+int choice = 1;          // Variable to hold the program until user is ready
+int count = 0;           // Variable to keep track of current population of store
+char data_received;      // Variable to hold value of serial data
+
+void setup()
+{
+  Serial.begin(9600);    // Starts serial communication at a baud rate of 9600.
+  
+  pinMode(P2_0, INPUT);  // Port 2 BIT0 is initialized as Input. Input is recieved from entrance PIR motion sensor.
+  pinMode(P2_4, INPUT);  // Port 2 BIT4 is initialized as Input. Input is recieved from exit PIR motion sensor.
+  
+  pinMode(2, OUTPUT); // Port 1 BIT1 is initialized as Output. This is where RXD (Recieved data) from HC-05 is read into the MSP430G2.
+  pinMode(P2_1, OUTPUT); // Port 2 BIT1 is initialized as Output. Output is transfered to Port 2 BIT0 - Entrance LED.
+  pinMode(P2_5, OUTPUT); // Port 2 BIT5 is initialized as Output. Output is transfered to Port 2 BIT4 - exit LED.
+
+  Serial.print("Wait 20 seconds before starting program\n");
+  delay(20000);          // Pause for 20 seconds to warm up PIR sensor
+} 
+
+void loop()
+{
+    if (Serial.available())                 // Check to ensure serial data is available
+      data_received = Serial.read();        // Passing the value of the input of serial data to character variable data_recieved
+
+    if (choice == 1)                        // Hold the program forever until the user inputs '1'
+    {
+      while (data_received != '1')          // Break loop if user enters '1'
+        {
+          if (choice == 1)
+          {
+            Serial.println("Input '1' to start recording quantity of customers"); // Print this when choice = 1, then change choice to 0 so it only prints once
+            choice = 0;
+            if (data_received == '1')
+               break;
+          }
+        }
+    }
+
+    if (digitalRead(P2_0) == HIGH)          // If motion is detected from entrance PIR motion sensor enter this if statement
+    {
+      digitalWrite(P2_1, HIGH);             // Turn entrance LED on
+      delay(100);                           // Pause .1 second
+      Serial.print("Object detected\n\n");
+      delay(1000); 
+      Serial.print("Amount of people in store: "); // Display to connected bluetooth device current capacity
+      count++;                              // Increment counter variable 1 to signify someone entering
+      Serial.println(count);
+      delay(7000);                          // Hold the LED on until ready for another customer entry
+      digitalWrite(P2_1, LOW);              // Turn entrance LED off
+    }
+    else if (digitalRead(P2_0) == LOW)      // If motion is not detected from exit PIR motion sensor enter this if statement
+    {
+      delay(100);                           // Hold for .1 seconds and scan again
+    }
+        
+    if(digitalRead(P2_4) == HIGH)           // If motion is detected from exit PIR motion sensor enter this if statement
+    {
+      digitalWrite(P2_5, HIGH);             // Turn exit LED on
+      delay(100);                           // Pause .1 second
+      Serial.print("Object detected\n\n"); 
+      delay(1000); 
+      Serial.print("Amount of people in store: "); // Display to connected bluetooth device current capacity
+      count--;                              // Increment counter variable -1 to signify someone exiting.
+      Serial.println(count);
+      delay(7000);                          // Hold the LED on until ready for another customer entry
+      digitalWrite(P2_5, LOW);              // Turn exit LED off
+    }
+    else if (digitalRead(P2_4) == LOW)      // If motion is not detected from exit PIR motion sensor enter this if statement
+    {
+      delay(100);                           // Hold for .1 seconds and scan again
+    }
+
+    if (data_received == '2')               // If user inputs '2' then enter this if statement
+    {
+      count = 0;                            // Reset counter variable
+      digitalWrite(P2_0, LOW);              // Set output of entrance PIR motion sensor to LOW
+      digitalWrite(P2_4, LOW);              // Set output of exit PIR motion sensor to LOW
+      choice = 1;
+    }
+}
